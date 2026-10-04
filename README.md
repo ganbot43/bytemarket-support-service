@@ -5,21 +5,54 @@ Libro de reclamaciones, obligatorio para comercios en Perú.
 Parte del sistema **ByteMarket**, una tienda de repuestos y accesorios para
 celulares construida con microservicios Spring Boot y un frontend Nuxt.
 
-## Qué hace
+**Puerto 8084** · Base de datos `bytemarket_support`
 
-- Registro público de reclamos y quejas, con adjunto opcional
-- Gestión desde el panel (`/api/admin/reclamaciones`)
-- **Correo automático al cliente** cuando se responde un reclamo
+## API
 
-El correo solo sale si la respuesta **cambió**, para que reabrir y volver a
-guardar no reenvíe el aviso. Si el envío falla, el reclamo igualmente queda
-guardado y la respuesta lo informa (`emailEnviado: false`) en vez de dar por
-avisado al cliente.
+Todo entra por el gateway (`http://localhost:8085`), no directamente al 8084.
 
-> Gmail en el puerto 587 exige **STARTTLS** y una **contraseña de
-> aplicación**, no la del correo.
+### Público
 
-Base de datos: `bytemarket_support`
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `POST` | `/api/reclamaciones` | Registra el reclamo. Acepta `application/json` o `multipart/form-data` con adjunto |
+| `GET` | `/api/reclamaciones/adjuntos/{nombre}` | Descarga un adjunto |
+
+Campos del reclamo: `customerName`, `tipoDocumento` (DNI, CE, Pasaporte),
+`numeroDocumento`, `direccion`, `telefono`, `email`, `tipoBien` (Producto o
+Servicio), `descripcionBien`, `monto?`, `tipoReclamo` (Reclamo o Queja),
+`descripcion`, `pedido?`.
+
+Adjunto: hasta **5 MB**. Al registrarse se genera un **código correlativo**
+con el año, que es lo que el cliente usa para dar seguimiento.
+
+### Panel — requiere rol `admin` o `superadmin`
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/api/admin/reclamaciones` | Listado |
+| `GET` | `/api/admin/reclamaciones/{id}` | Detalle |
+| `PUT` | `/api/admin/reclamaciones/{id}` | Responde o cambia el estado. Body: `estado?`, `respuesta?` |
+
+Estados: `pendiente`, `en_proceso`, `respondido`, `cerrado`.
+
+### El correo al cliente
+
+Al guardar una `respuesta` se envía un correo al cliente, **solo si el texto
+cambió**: reabrir y volver a guardar lo mismo no reenvía el aviso.
+
+La respuesta dice lo que de verdad pasó:
+
+```json
+{ "status": 200, "message": "Actualizado", "emailEnviado": true }
+```
+
+Si el envío falla, el reclamo **igualmente queda guardado** y responde
+`emailEnviado: false` con un `emailAviso`. Decir "enviado" cuando no salió
+sería peor que no avisar: el encargado creería que el cliente ya lo sabe.
+
+> Gmail en el puerto 587 exige **STARTTLS** (ya configurado) y una
+> **contraseña de aplicación** de Google, no la del correo.
 
 ## Cómo levantarlo
 
