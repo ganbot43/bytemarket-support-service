@@ -10,15 +10,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
  * Adjuntos en el disco del propio servicio.
  *
- * El directorio es configurable a propósito: dentro de Docker tiene que
- * caer en un volumen, porque si queda en la capa de escritura del
- * contenedor los adjuntos desaparecen en cuanto se actualiza la imagen.
+ * La referencia es {aaaa}/{MM}/{dd}/{uuid}.{ext}, la misma convención con la
+ * que catalog y user guardan en S3. Aquí sirve para lo mismo: poder barrer
+ * por antigüedad y encontrar lo de un día concreto sin listar la carpeta
+ * entera.
+ *
+ * El directorio raíz es configurable a propósito: dentro de Docker tiene que
+ * caer en un volumen, porque si queda en la capa de escritura del contenedor
+ * los adjuntos desaparecen en cuanto se actualiza la imagen.
  */
 @Component
 public class LocalAttachmentStorage implements AttachmentStorage {
@@ -31,15 +38,15 @@ public class LocalAttachmentStorage implements AttachmentStorage {
 
     @Override
     public String guardar(MultipartFile archivo) throws IOException {
-        Files.createDirectories(raiz);
+        String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        // El nombre lo pone el servidor: del original solo la extensión, que
+        // el nombre del cliente puede traer rutas, espacios o acentos.
+        String referencia = fecha + "/" + UUID.randomUUID() + extension(archivo.getOriginalFilename());
 
-        String original = Optional.ofNullable(archivo.getOriginalFilename()).orElse("adjunto");
-        String ext = original.contains(".") ? original.substring(original.lastIndexOf('.')) : "";
-        // El nombre lo pone el servidor: el del cliente puede traer rutas.
-        String referencia = System.currentTimeMillis() + "-" + UUID.randomUUID()
-                + ext.replaceAll("[^a-zA-Z0-9.]", "");
+        Path destino = raiz.resolve(referencia);
+        Files.createDirectories(destino.getParent());
+        archivo.transferTo(destino.toFile());
 
-        archivo.transferTo(raiz.resolve(referencia).toFile());
         return referencia;
     }
 
@@ -52,5 +59,19 @@ public class LocalAttachmentStorage implements AttachmentStorage {
         if (!archivo.startsWith(raiz) || !Files.exists(archivo)) return Optional.empty();
 
         return Optional.of(new FileSystemResource(archivo));
+    }
+
+    /** La extensión, si es una extensión de verdad y no un nombre disfrazado. */
+    private static String extension(String originalFilename) {
+        if (originalFilename == null) return "";
+
+        String base = originalFilename.replace('\\', '/');
+        base = base.substring(base.lastIndexOf('/') + 1);
+
+        int punto = base.lastIndexOf('.');
+        if (punto < 0) return "";
+
+        String ext = base.substring(punto).toLowerCase();
+        return ext.matches("\\.[a-z0-9]{1,8}") ? ext : "";
     }
 }

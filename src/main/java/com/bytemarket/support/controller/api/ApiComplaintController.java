@@ -57,9 +57,17 @@ public class ApiComplaintController {
         return ResponseEntity.ok(res);
     }
 
-    @GetMapping("/api/reclamaciones/adjuntos/{referencia:.+}")
+    /**
+     * La referencia lleva barras —aaaa/MM/dd/archivo—, así que se captura el
+     * resto de la ruta con {*referencia} en vez de un solo segmento. Llega
+     * con la barra inicial y hay que quitarla.
+     *
+     * Las referencias antiguas, que eran planas, siguen entrando por aquí y
+     * resolviendo igual: las URLs ya guardadas en base no se tocan.
+     */
+    @GetMapping("/api/reclamaciones/adjuntos/{*referencia}")
     public ResponseEntity<Resource> verAdjunto(@PathVariable String referencia) {
-        return complaintService.adjunto(referencia)
+        return complaintService.adjunto(referencia.startsWith("/") ? referencia.substring(1) : referencia)
                 .map(archivo -> ResponseEntity.ok()
                         .contentType(MediaTypeFactory.getMediaType(referencia)
                                 .orElse(MediaType.APPLICATION_OCTET_STREAM))
