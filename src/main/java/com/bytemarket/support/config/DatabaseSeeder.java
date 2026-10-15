@@ -1,8 +1,8 @@
 package com.bytemarket.support.config;
 
+import lombok.RequiredArgsConstructor;
 import com.bytemarket.support.model.Complaint;
 import com.bytemarket.support.repository.IComplaintRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -10,10 +10,10 @@ import org.springframework.stereotype.Component;
  * Seeder de ByteMarket (support-service): reclamos de ejemplo para el Libro de Reclamaciones.
  */
 @Component
+@RequiredArgsConstructor
 public class DatabaseSeeder implements CommandLineRunner {
 
-    @Autowired
-    private IComplaintRepository complaintRepository;
+    private final IComplaintRepository complaintRepository;
 
     @Override
     public void run(String... args) {

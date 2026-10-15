@@ -1,8 +1,9 @@
 package com.bytemarket.support.controller.api;
 
+import com.bytemarket.support.service.EmailService;
+import lombok.RequiredArgsConstructor;
 import com.bytemarket.support.model.Complaint;
 import com.bytemarket.support.repository.IComplaintRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Sort;
@@ -25,6 +26,7 @@ import java.util.*;
  * Libro de Reclamaciones: registro público y gestión desde el panel.
  */
 @RestController
+@RequiredArgsConstructor
 public class ApiComplaintController {
 
     private static final Set<String> TIPOS_DOC = Set.of("DNI", "CE", "Pasaporte");
@@ -36,11 +38,9 @@ public class ApiComplaintController {
     private static final long MAX_ADJUNTO = 5L * 1024 * 1024;
     private static final Path UPLOAD_DIR = Paths.get("uploads", "complaints").toAbsolutePath();
 
-    @Autowired
-    private IComplaintRepository complaintRepository;
+    private final IComplaintRepository complaintRepository;
 
-    @Autowired
-    private com.bytemarket.support.service.EmailService emailService;
+    private final EmailService emailService;
 
     // ─── PÚBLICO ────────────────────────────────────────────────
 
