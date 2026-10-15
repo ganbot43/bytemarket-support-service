@@ -38,6 +38,14 @@ spring:
       group-id: ${KAFKA_GROUP:bytemarket-support}
       auto-offset-reset: earliest
 
+# ── Adjuntos del libro de reclamaciones ──────────────────────
+# Relativo al directorio de trabajo. En Docker el WORKDIR es /app, así que
+# acaba en /app/uploads/complaints, y el compose monta un volumen ahí: en la
+# capa de escritura del contenedor los adjuntos desaparecerían en cuanto se
+# actualice la imagen.
+attachments:
+  dir: ${ATTACHMENTS_DIR:uploads/complaints}
+
 eureka:
   client:
     service-url:

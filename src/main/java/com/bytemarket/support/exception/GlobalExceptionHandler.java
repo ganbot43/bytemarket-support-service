@@ -32,6 +32,17 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /**
+     * Una regla del libro de reclamaciones. Trae su propio estado porque no
+     * todas fallan igual: un campo mal puesto es 400 y un reclamo que no
+     * existe es 404.
+     */
+    @ExceptionHandler(ComplaintException.class)
+    public ResponseEntity<Map<String, Object>> reclamacion(ComplaintException ex) {
+        HttpStatus estado = HttpStatus.resolve(ex.getStatus());
+        return respuesta(estado == null ? HttpStatus.BAD_REQUEST : estado, ex.getMessage());
+    }
+
     /** Ruta que no existe. */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> noEncontrado(NoResourceFoundException ex) {
