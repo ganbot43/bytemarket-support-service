@@ -90,6 +90,12 @@
 		</dependency>
 
 		<!-- Correo de resolución de reclamos (EmailService) -->
+		<!-- Kafka: se consume bytemarket.pedidos para avisar al cliente de
+		     cada cambio de estado. Ver PedidoEventListener. -->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>

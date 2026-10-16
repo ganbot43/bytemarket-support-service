@@ -60,4 +60,50 @@ public class EmailService {
             return false;
         }
     }
+
+    /**
+     * Avisa al cliente de cómo va su pedido.
+     *
+     * Lo dispara un evento de Kafka, no una petición HTTP: el asunto y el
+     * texto ya vienen decididos por OrderNotificationService, que es quien
+     * sabe qué estados merecen aviso. Aquí solo se arma y se manda.
+     *
+     * @return true solo si el SMTP lo aceptó. Quien llama lo guarda, así que
+     *         no puede decir "avisado" cuando el correo no salió.
+     */
+    public boolean sendOrderStatusEmail(String toEmail, String customerName, String orderCode,
+                                        String titulo, String mensaje, Double total) {
+        if (toEmail == null || toEmail.isBlank()) {
+            log.warn("No se pudo avisar del pedido {} porque no hay correo del cliente.", orderCode);
+            return false;
+        }
+
+        try {
+            Context context = new Context();
+            context.setVariable("customerName", customerName != null ? customerName : "Cliente");
+            context.setVariable("orderCode", orderCode);
+            context.setVariable("titulo", titulo);
+            context.setVariable("mensaje", mensaje);
+            context.setVariable("total", total);
+
+            String cuerpo = templateEngine.process("order-status", context);
+
+            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            helper.setText(cuerpo, true);
+            helper.setTo(toEmail);
+            helper.setSubject(titulo + " - " + orderCode);
+            helper.setFrom("Bytemarket <" + senderEmail + ">");
+
+            javaMailSender.send(mimeMessage);
+            log.info("Aviso del pedido {} enviado a {}", orderCode, toEmail);
+            return true;
+        } catch (Exception e) {
+            // No se propaga: el pedido ya cambió de estado y perder el aviso
+            // no debe deshacerlo ni provocar que Kafka reentregue sin fin.
+            log.error("Error al enviar el aviso del pedido {} a {}: ", orderCode, toEmail, e);
+            return false;
+        }
+    }
 }

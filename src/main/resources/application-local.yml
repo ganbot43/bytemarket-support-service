@@ -25,3 +25,22 @@ spring:
     port: ${SMTP_PORT:587}
     username: ${SMTP_USER:}
     password: ${SMTP_PASSWORD:}
+    # Sin esto Gmail corta la conexión con "530 5.7.0 Must issue a STARTTLS
+    # command first" y NINGÚN correo sale: ni el de resolución de reclamos ni
+    # el aviso de estado del pedido. El 587 es el puerto de STARTTLS —se abre
+    # en claro y se cifra con el comando—, y Spring no lo activa por su
+    # cuenta. Se vio al probar el aviso de pedidos de punta a punta: el
+    # evento llegaba, la plantilla se generaba y el envío moría aquí.
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          # Un SMTP que no responde no puede dejar colgado al consumidor de
+          # Kafka: sin estos tiempos, el hilo del listener esperaría
+          # indefinidamente y el resto de eventos no se procesaría.
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000

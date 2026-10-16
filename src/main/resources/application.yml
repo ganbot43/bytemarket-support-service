@@ -24,9 +24,11 @@ spring:
       # Spring por defecto cortaba la subida antes de llegar al controlador.
       max-file-size: 5MB
       max-request-size: 10MB
-  # Mensajería: preparada, todavía sin usar. Hoy es inerte porque ningún
-  # pom.xml incluye AMQP ni Kafka. Para activarla, añadir al pom
-  # spring-boot-starter-amqp o spring-kafka (ambos ya en docker-compose).
+  # ── Mensajería ───────────────────────────────────────────────
+  # Este servicio solo CONSUME, y solo de Kafka: lee bytemarket.pedidos para
+  # avisar al cliente de cada cambio de estado de su pedido. La cola de
+  # RabbitMQ es cosa de catalog y order (el descuento de stock) y aquí no se
+  # usa; la sección se queda porque el .env la rellena para todos.
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
@@ -35,8 +37,28 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:localhost:9094}
     consumer:
-      group-id: ${KAFKA_GROUP:bytemarket-support}
+      # El grupo es lo que hace que varias instancias de support-service se
+      # repartan las particiones en vez de que todas manden el mismo correo.
+      # Y es lo que permitirá que mañana otro consumidor (métricas, por
+      # ejemplo) lea los MISMOS eventos con su propio grupo y su propio
+      # avance, sin quitárselos a este.
+      group-id: ${KAFKA_GROUP:bytemarket-support-notificaciones}
+      # earliest para que un support-service recién levantado recupere los
+      # eventos que ocurrieron mientras estaba apagado. Es seguro porque el
+      # envío es idempotente: ver OrderNotificationService.
       auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        # El productor no manda la cabecera con su nombre de clase, así que
+        # hay que decir aquí a qué tipo se mapea el JSON.
+        spring.json.value.default.type: com.bytemarket.support.messaging.PedidoEvento
+        spring.json.trusted.packages: com.bytemarket.support.messaging
+    listener:
+      # Se confirma el offset DESPUÉS de procesar, no al recibir. Si el
+      # servicio muere a medio enviar, el evento se vuelve a leer en vez de
+      # darse por avisado sin haberlo estado.
+      ack-mode: record
 
 # ── Adjuntos del libro de reclamaciones ──────────────────────
 # Relativo al directorio de trabajo. En Docker el WORKDIR es /app, así que
@@ -85,3 +107,20 @@ management:
       show-details: never
       probes:
         enabled: true
+  health:
+    # El estado del SMTP NO cuenta para la salud de este servicio.
+    #
+    # Spring añade un MailHealthIndicator que se autentica contra Gmail en
+    # cada sondeo. Con las credenciales caducadas devolvía DOWN, el
+    # /actuator/health respondía 503, y Docker daba el contenedor por
+    # enfermo: dejaba de recibir tráfico y el gateway no arrancaba. Es decir,
+    # una contraseña de aplicación vencida tumbaba el libro de reclamaciones
+    # entero.
+    #
+    # Y es una respuesta equivocada a la pregunta que hace la sonda. "¿Puede
+    # este servicio atender peticiones?" sigue siendo sí: los reclamos se
+    # registran, se consultan y el consumidor de Kafka sigue procesando
+    # eventos —anotándolos con enviado=false, que para eso está esa columna—.
+    # Un correo que no sale es una función degradada, no un servicio muerto.
+    mail:
+      enabled: false
