@@ -1,42 +1,134 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!--
+  Correo de cambio de estado de un pedido.
+
+  Maquetado con tablas y estilos en línea, y no con divs y una hoja en
+  <head>, porque esto no lo pinta un navegador: Outlook de escritorio usa
+  el motor de Word —ignora border-radius, box-shadow y float— y varios
+  clientes recortan o tiran el bloque <style>. Con divs, el correo se veía
+  bien en el navegador del desarrollador y llegaba desarmado a medio mundo.
+
+  El color es el de la marca: navy #071e52 del logo y cian #00aeef de
+  acento. Antes era #B01883, un magenta que no aparece en ningún otro
+  sitio del producto.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title th:text="${titulo}">Estado de tu pedido</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
-        .container { background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto; }
-        .header { background-color: #B01883; color: #ffffff; padding: 15px; border-radius: 8px 8px 0 0; text-align: center; }
-        .content { padding: 20px; color: #333333; line-height: 1.6; }
-        .footer { margin-top: 20px; font-size: 12px; color: #777777; text-align: center; }
-        .estado-box { border-left: 4px solid #B01883; padding: 15px; margin: 20px 0; background-color: #fafafa; border-radius: 0 8px 8px 0; }
-        .pedido { font-size: 13px; color: #555555; }
-        .total { font-weight: bold; }
+        /* Lo único que va aquí es lo que no se puede poner en línea. Si un
+           cliente de correo se come este bloque, el correo sigue entero. */
+        @media only screen and (max-width: 620px) {
+            .caja { width: 100% !important; }
+            .relleno { padding: 20px !important; }
+            .titulo { font-size: 20px !important; }
+        }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2 style="margin: 0;" th:text="${titulo}">Estado de tu pedido</h2>
-        </div>
-        <div class="content">
-            <p>Hola <strong th:text="${customerName}">Cliente</strong>,</p>
+<body style="margin:0; padding:0; background-color:#eef2f7;">
 
-            <div class="estado-box" th:text="${mensaje}">
-                Mensaje del estado aquí...
-            </div>
-
-            <p class="pedido">
-                Pedido <strong th:text="${orderCode}">BM-XXXXXXXX-XXXX</strong>
-                <span th:if="${total != null}">
-                    — total <span class="total" th:text="'S/ ' + ${#numbers.formatDecimal(total, 1, 2)}">S/ 0.00</span>
-                </span>
-            </p>
-
-            <p>Puedes seguir tu pedido desde <strong>Mi cuenta &gt; Mis pedidos</strong> en la tienda.</p>
-        </div>
-        <div class="footer">
-            <p>Este es un correo automático de ByteMarket. Si tienes dudas, responde a este mensaje.</p>
-        </div>
+    <!-- La línea que asoma en la bandeja de entrada, junto al asunto.
+         Invisible en el cuerpo: sin ella, el cliente lee el principio del
+         encabezado y no sabe de qué va el correo. -->
+    <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+        <span th:text="${mensaje}">Tu pedido cambió de estado</span>
     </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background-color:#eef2f7; padding:24px 12px;">
+        <tr>
+            <td align="center">
+
+                <table role="presentation" class="caja" width="600" cellpadding="0" cellspacing="0" border="0"
+                       style="width:600px; max-width:600px; background-color:#ffffff; border:1px solid #dde4ee;">
+
+                    <!-- Cabecera -->
+                    <tr>
+                        <td align="center" bgcolor="#071e52"
+                            style="background-color:#071e52; padding:24px 20px;">
+                            <p style="margin:0 0 6px; font-family:Arial,Helvetica,sans-serif; font-size:12px;
+                                      letter-spacing:2px; text-transform:uppercase; color:#00aeef;">
+                                ByteMarket
+                            </p>
+                            <h1 class="titulo" th:text="${titulo}"
+                                style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:24px;
+                                       line-height:1.3; color:#ffffff; font-weight:bold;">
+                                Estado de tu pedido
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <!-- Una línea de cian: es lo que ata el correo al logo. -->
+                    <tr><td bgcolor="#00aeef" style="background-color:#00aeef; height:4px; font-size:0; line-height:0;">&nbsp;</td></tr>
+
+                    <!-- Cuerpo -->
+                    <tr>
+                        <td class="relleno" style="padding:32px;">
+                            <p style="margin:0 0 20px; font-family:Arial,Helvetica,sans-serif; font-size:16px;
+                                      line-height:1.5; color:#1f2a44;">
+                                Hola <strong th:text="${customerName}">Cliente</strong>,
+                            </p>
+
+                            <!-- El mensaje, destacado con una barra lateral.
+                                 border-left sí lo respeta Outlook; un
+                                 border-radius, no. -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                   style="margin:0 0 24px;">
+                                <tr>
+                                    <td style="background-color:#f5f8fc; border-left:4px solid #00aeef;
+                                               padding:16px 18px; font-family:Arial,Helvetica,sans-serif;
+                                               font-size:16px; line-height:1.5; color:#1f2a44;"
+                                        th:text="${mensaje}">
+                                        Mensaje del estado aquí
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Los datos del pedido -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                   style="margin:0 0 24px; border-top:1px solid #e5eaf2; border-bottom:1px solid #e5eaf2;">
+                                <tr>
+                                    <td style="padding:12px 0; font-family:Arial,Helvetica,sans-serif;
+                                               font-size:14px; color:#5a6a85;">Pedido</td>
+                                    <td align="right" style="padding:12px 0; font-family:Arial,Helvetica,sans-serif;
+                                               font-size:14px; font-weight:bold; color:#1f2a44;"
+                                        th:text="${orderCode}">BM-XXXXXXXX-XXXX</td>
+                                </tr>
+                                <tr th:if="${total != null}">
+                                    <td style="padding:0 0 12px; font-family:Arial,Helvetica,sans-serif;
+                                               font-size:14px; color:#5a6a85;">Total</td>
+                                    <td align="right" style="padding:0 0 12px; font-family:Arial,Helvetica,sans-serif;
+                                               font-size:16px; font-weight:bold; color:#071e52;"
+                                        th:text="'S/ ' + ${#numbers.formatDecimal(total, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</td>
+                                </tr>
+                            </table>
+
+                            <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:15px;
+                                      line-height:1.5; color:#5a6a85;">
+                                Puedes seguir tu pedido desde <strong style="color:#1f2a44;">Mi cuenta &rsaquo; Mis pedidos</strong>
+                                en la tienda.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Pie -->
+                    <tr>
+                        <td style="padding:20px 32px; background-color:#f5f8fc; border-top:1px solid #e5eaf2;">
+                            <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:12px;
+                                      line-height:1.5; color:#7a8699; text-align:center;">
+                                Este es un correo automático de ByteMarket.<br />
+                                Si tienes dudas, responde a este mensaje.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
