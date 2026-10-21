@@ -6,6 +6,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
 @EnableDiscoveryClient
+@org.springframework.cloud.openfeign.EnableFeignClients
 public class SupportServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(SupportServiceApplication.class, args);

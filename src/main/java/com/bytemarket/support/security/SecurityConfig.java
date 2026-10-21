@@ -12,7 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * - /api/admin/**   solo admin y superadmin (rol tomado del JWT)
+ * - /api/admin/**   según la matriz de permisos (ModuloAuthorizationManager)
  * - /api/internal/** llamadas entre microservicios (no se exponen en el gateway)
  * - resto: público; los endpoints de cliente validan la sesión en el controlador
  */
@@ -28,7 +28,8 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   JwtAuthenticationFilter jwtAuthFilter) throws Exception {
+                                                   JwtAuthenticationFilter jwtAuthFilter,
+                                                   ModuloAuthorizationManager porModulo) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.disable())
@@ -36,7 +37,13 @@ public class SecurityConfig {
             .formLogin(f -> f.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
+                /*
+                 * /api/admin lo decide la MATRIZ de permisos, no un rol
+                 * escrito aquí: si no, quitarle el libro de reclamaciones a
+                 * alguien desde la pantalla de Roles y permisos escondería el
+                 * menú y no cerraría la API.
+                 */
+                .requestMatchers("/api/admin/**").access(porModulo)
                 .anyRequest().permitAll()
             )
             .exceptionHandling(ex -> ex
